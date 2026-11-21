@@ -2,6 +2,8 @@
 import datetime as dt
 import html
 
+import news_config as cfg
+
 # One colour per category (like metro lines). Light and dark variants live in the CSS below.
 CAT_CLASS = {"India": "c-india", "Bahrain & Gulf": "c-gulf", "World": "c-world", "Explained": "c-explain", "Economy": "c-econ",
              "Health": "c-health", "Technology": "c-tech", "Science": "c-sci", "Sports": "c-sport"}
@@ -14,7 +16,12 @@ CSS = """
 --c-india:#ff9a3d;--c-gulf:#ff5a73;--c-world:#6fa3ff;--c-econ:#45c796;--c-health:#ee6fbf;--c-explain:#d9a566;--c-tech:#a08cff;--c-sci:#4cc4dd;--c-sport:#e0b54a}}
 .stApp{background:var(--bg)}
 header[data-testid="stHeader"],footer,#MainMenu{display:none!important}
-.block-container{max-width:720px!important;padding:1.4rem 16px 4rem!important}
+.block-container{max-width:720px!important;padding:.9rem 16px 4rem!important}
+div[data-baseweb="tab-list"]{gap:1.4rem}
+div[data-baseweb="tab-list"] button p{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:1.02rem;font-weight:500;color:var(--muted)}
+div[data-baseweb="tab-list"] button[aria-selected="true"] p{color:var(--ink);font-weight:700}
+div[data-baseweb="tab-highlight"]{background-color:var(--ink)!important;height:3px!important}
+div[data-baseweb="tab-border"]{background-color:var(--line)!important}
 .dn,.dn *{font-family:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;box-sizing:border-box}
 .dn{color:var(--ink);line-height:1.5}
 .dn a{color:inherit;text-decoration:none}
@@ -23,8 +30,8 @@ header[data-testid="stHeader"],footer,#MainMenu{display:none!important}
 .c-india{--c:var(--c-india)}.c-gulf{--c:var(--c-gulf)}.c-world{--c:var(--c-world)}.c-econ{--c:var(--c-econ)}
 .c-explain{--c:var(--c-explain)}.c-health{--c:var(--c-health)}.c-tech{--c:var(--c-tech)}.c-sci{--c:var(--c-sci)}.c-sport{--c:var(--c-sport)}
 
-.mast{padding:.4rem 0 1.1rem}
-.mast h1{font-size:clamp(2.3rem,9vw,3.4rem);font-weight:800;letter-spacing:-.035em;line-height:1;margin:0}
+.mast{padding:.8rem 0 1rem}
+.dn .mast h1{font-size:clamp(2.3rem,9vw,3.4rem);font-weight:800;letter-spacing:-.035em;line-height:1;margin:0!important;padding:0!important}
 .mast .date{font-size:1.05rem;font-weight:500;margin-top:.55rem}
 .mast .state{font-size:.9rem;color:var(--muted);margin-top:.15rem}
 
@@ -39,7 +46,7 @@ header[data-testid="stHeader"],footer,#MainMenu{display:none!important}
 .lead .sum{color:var(--muted);font-size:1.02rem;margin:0 0 .8rem}
 
 .sec{margin:2rem 0 0;scroll-margin-top:1rem}
-.sec h2{display:flex;align-items:center;gap:.6rem;font-size:1.35rem;font-weight:800;letter-spacing:-.015em;margin:0 0 .3rem}
+.dn .sec h2{padding:0!important;display:flex;align-items:center;gap:.6rem;font-size:1.35rem;font-weight:800;letter-spacing:-.015em;margin:0 0 .3rem}
 .sec h2:before{content:"";width:6px;height:1.4rem;border-radius:3px;background:var(--c)}
 .story{display:block;padding:.95rem 0 1rem}
 .story+.story{border-top:1px solid var(--line)}
@@ -47,6 +54,7 @@ header[data-testid="stHeader"],footer,#MainMenu{display:none!important}
 .story.mk .cat:before{content:"";width:.6rem;height:.6rem;border-radius:50%;background:var(--c)}
 .story .hl{font-size:1.14rem;font-weight:700;line-height:1.3;letter-spacing:-.01em}
 .story .sum{color:var(--muted);font-size:.98rem;margin:.3rem 0 0;max-width:62ch}
+.sum{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem 1rem;margin-top:.6rem;font-size:.86rem;color:var(--muted)}
 .dots{display:inline-flex;align-items:center;gap:.28rem;font-weight:500}
@@ -140,6 +148,20 @@ def must_know_html(result):
     return "".join(parts)
 
 
+def pick_lead(stories):
+    """The big top card: official or widely reported news first; explainers and local incidents avoided."""
+    news = [s for s in stories if s.get("confirmation") != "Explainer"]
+    if not news:
+        return None
+
+    def rank(s):
+        text = s["title"].lower()
+        strong = s["official"] or s["n_sources"] >= cfg.LEAD_MIN_OUTLETS
+        demoted = any(w in text for w in cfg.LEAD_DEMOTE_WORDS)
+        return (strong and not demoted, not demoted, s["score"])
+    return max(news, key=rank)
+
+
 def page_html(digest, now=None, local_offset_hours=3):
     now = now or dt.datetime.now(dt.timezone.utc)
     local = now + dt.timedelta(hours=local_offset_hours)
@@ -153,8 +175,7 @@ def page_html(digest, now=None, local_offset_hours=3):
     else:
         parts.append('<nav class="jump" aria-label="Categories">' + "".join(
             f'<a class="{CAT_CLASS.get(c, "c-world")}" href="#{_slug(c)}">{_e(c)}</a>' for c in sections) + "</nav>")
-        news = [s for stories in sections.values() for s in stories if s.get("confirmation") != "Explainer"]
-        top = max(news, key=lambda s: s["score"]) if news else None  # explainers never lead the page
+        top = pick_lead([s for stories in sections.values() for s in stories])
         if top:
             parts.append(lead_html(top, now))
         for cat, stories in sections.items():

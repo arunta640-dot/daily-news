@@ -82,8 +82,6 @@ SOURCES = [
      "domains": ("indianexpress.com",), "category": "Explained", "tier": "major"},
     {"name": "The Conversation", "url": "https://theconversation.com/global/articles.atom",
      "domains": ("theconversation.com",), "category": "Explained", "tier": "major"},
-    {"name": "The Guardian Long Read", "url": "https://www.theguardian.com/news/series/the-long-read/rss",
-     "domains": ("theguardian.com",), "category": "Explained", "tier": "major"},
 
     # ---- Sports (results and major events only; remove this block if you do not want sports)
     {"name": "BBC Sport", "url": "https://feeds.bbci.co.uk/sport/rss.xml",
@@ -122,6 +120,7 @@ BLOCK_WORDS = [
     "quiz", "puzzle", "crossword", "recipe", "gift guide", "deals", "discount code",
     "sponsored", "advertorial", "web series", "ott release", "trailer", "teaser",
     "tv show", "reality show", "bigg boss", "k-pop",
+    "podcast", "newsletter", "in pictures", "photo essay", "my secret life", "my life as",
 ]
 # Links containing these path pieces are opinion/video/gallery pages, not news reports.
 BLOCK_URL_PARTS = [
@@ -145,3 +144,9 @@ MUST_KNOW_MIN_OUTLETS = 3
 MUST_KNOW_MIN_DAYS = 2
 MUST_KNOW_LIMIT = 10          # total stories shown
 MUST_KNOW_PER_CATEGORY = 4    # so one topic cannot fill the whole list
+
+# ---- Top story on the Today tab ---------------------------------------------
+# The big card prefers stories that are official or reported by 3+ outlets, and avoids these
+# local-incident words (such stories still appear in the lists, just not as the top story).
+LEAD_DEMOTE_WORDS = ["accident", "collides", "collision", "stabbed", "murder", "arrested", "robbery", "suicide"]
+LEAD_MIN_OUTLETS = 3
