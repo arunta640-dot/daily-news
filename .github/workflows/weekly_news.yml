@@ -1,0 +1,20 @@
+name: Must-know weekly notification
+on:
+  schedule:
+    - cron: "30 3 * * 5"   # Friday 06:30 Bahrain time
+  workflow_dispatch:
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python weekly_news.py
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_SERVER: ${{ secrets.NTFY_SERVER }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
+          NEWS_APP_URL: ${{ secrets.NEWS_APP_URL }}
