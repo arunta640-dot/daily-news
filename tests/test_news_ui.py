@@ -38,3 +38,18 @@ class UITests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LeadTests(unittest.TestCase):
+    def test_lead_prefers_wide_coverage_and_avoids_incidents(self):
+        local = story("Five killed after ambulance collides with pickup truck", n=2, score=50)
+        wide = story("Government announces national vaccination drive", n=4, score=20)
+        self.assertEqual(news_ui.pick_lead([local, wide])["title"], wide["title"])
+
+    def test_lead_falls_back_when_only_weak_stories(self):
+        a = story("Local council approves budget for roads", n=2, score=30)
+        self.assertEqual(news_ui.pick_lead([a])["title"], a["title"])
+
+    def test_explainers_never_lead(self):
+        e = story("Why prices change", n=1, score=99, confirmation="Explainer")
+        self.assertIsNone(news_ui.pick_lead([e]))
